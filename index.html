@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Riz Up: Brain Rot Edition</title>
+    <style>
+        :root {
+            --primary: #ff0055;
+            --secondary: #00e5ff;
+            --bg: #0f0f1a;
+            --card-bg: #1a1a2e;
+            --text: #ffffff;
+            --success: #00ff9d;
+            --warning: #ffcc00;
+            --danger: #ff4444;
+            --font-main: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        * { box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: var(--font-main);
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- SCREENS --- */
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            flex-direction: column;
+            padding: 20px;
+            transition: opacity 0.3s;
+        }
+
+        .screen.active { display: flex; }
+
+        /* --- HOME SCREEN --- */
+        #home-screen {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            background: radial-gradient(circle at center, #2a2a4e 0%, var(--bg) 70%);
+        }
+
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px rgba(255, 0, 85, 0.5);
+            animation: pulse 2s infinite;
+        }
+
+        .subtitle { font-size: 1.2rem; opacity: 0.8; margin-bottom: 40px; }
+
+        .btn-start {
+            background: linear-gradient(45deg, var(--primary), #ff5e00);
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.5rem;
+            color: white;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 0 20px rgba(255, 0, 85, 0.6);
+            transition: transform 0.2s;
+        }
+
+        .btn-start:active { transform: scale(0.95); }
+
+        /* --- CHARACTER SELECT --- */
+        #char-select-screen { overflow-y: auto; }
+        .char-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 15px;
+            padding-bottom: 20px;
+        }
+
+        .char-card {
+            background: var(--card-bg);
+            border-radius: 15px;
+            padding: 15px;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .char-card.locked { opacity: 0.5; filter: grayscale(1); pointer-events: none; }
+        .char-card:hover { transform: translateY(-5px); border-color: var(--secondary); }
+        
+        .char-emoji { font-size: 3rem; margin-bottom: 10px; display: block; }
+        .char-name { font-weight: bold; font-size: 0.9rem; margin-bottom: 5px; }
+        .char-diff { font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; display: inline-block; }
+        .diff-easy { background: #00ff9d33; color: #00ff9d; }
+        .diff-medium { background: #ffcc0033; color: #ffcc00; }
+        .diff-hard { background: #ff444433; color: #ff4444; }
+
+        /* --- GAME SCREEN --- */
+        #game-screen { justify-content: space-between; padding: 10px; }
+
+        /* Top Bar */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+        }
+        .round-indicator { font-size: 0.9rem; color: #aaa; }
+        .streak-badge {
+            background: var(--warning);
+            color: #000;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 0.8rem;
+            display: none;
+        }
+
+        /* Character Area */
+        .character-stage {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .character-avatar {
+            font-size: 6rem;
+            filter: drop-shadow(0 0 15px rgba(255,255,255,0.3));
+            transition: transform 0.2s;
+        }
+
+        .dialogue-bubble {
+            background: white;
+            color: black;
+            padding: 15px 20px;
+            border-radius: 20px;
+            border-bottom-left-radius: 0;
+            margin-top: 20px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            max-width: 90%;
+            text-align: center;
+            position: relative;
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* Rizz Meter */
+        .meter-container {
+            width: 100%;
+            height: 30px;
+            background: #333;
+            border-radius: 15px;
+            margin: 10px 0;
+            overflow: hidden;
+            position: relative;
+            border: 2px solid #555;
+        }
+
+        .meter-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #ff4444, #ffcc00, #00ff9d);
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        .meter-text {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            line-height: 26px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+            z-index: 2;
+        }
+
+        /* Options */
+        .options-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding-bottom: 20px;
+        }
+
+        .option-btn {
+            background: var(--card-bg);
+            border: 2px solid #333;
+            padding: 15px;
+            border-radius: 12px;
+            color: white;
+            font-size: 1rem;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .option-btn:active { transform: scale(0.98); background: #2a2a4e; }
+        
+        .option-btn.correct { border-color: var(--success); background: #00ff9d22; }
+        .option-btn.wrong { border-color: var(--danger); background: #ff444422; }
+        .option-btn.mid { border-color: var(--warning); background: #ffcc0022; }
+
+        /* --- END SCREEN --- */
+        #end-screen {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            background: rgba(0,0,0,0.9);
+            z-index: 100;
+        }
+
+        .end-title { font-size: 2.5rem; margin-bottom: 10px; }
+        .end-score { font-size: 4rem; font-weight: bold; color: var(--secondary); margin: 20px 0; }
+        .end-msg { font-size: 1.2rem; margin-bottom: 30px; color: #ccc; }
+
+        /* --- GHOST OVERLAY --- */
+        #ghost-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+            text-align: center;
+        }
+        .ghost-emoji { font-size: 5rem; margin-bottom: 20px; }
+        .timer { font-size: 2rem; color: var(--danger); font-weight: bold; }
+
+        /* --- ANIMATIONS --- */
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        @keyframes popIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+        @keyframes shake { 0% { transform: translateX(0); } 25% { transform: translateX(-10px); } 75% { transform: translateX(10px); } 100% { transform: translateX(0); } }
+        @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0px); } }
+
+        .shake { animation: shake 0.4s ease-in-out; }
+        .float { animation: float 3s ease-in-out infinite; }
+        .confetti { position: absolute; width: 10px; height: 10px; background: #f00; animation: fall linear forwards; }
+
+        @keyframes fall { to { transform: translateY(100vh) rotate(720deg); } }
+
+    </style>
+</head>
+<body>
+
+    <!-- HOME SCREEN -->
+    <div id="home-screen" class="screen active">
+        <h1>RIZ UP</h1>
+        <div class="subtitle">Brain Rot Edition</div>
+        <button class="btn-start" onclick="showScreen('char-select-screen')">PLAY NOW</button>
+        <div style="margin-top: 30px; font-size: 0.8rem; opacity: 0.6;">
+            ⚠️ Parody Meme Game<br>Keep it PG-13
+        </div>
+    </div>
+
+    <!-- CHARACTER SELECT -->
+    <div id="char-select-screen" class="screen">
+        <h2 style="text-align: center; margin-top: 20px;">PICK YOUR TARGET</h2>
+        <div class="char-grid" id="char-grid">
+            <!-- Generated by JS -->
+        </div>
+        <button onclick="showScreen('home-screen')" style="margin: 20px auto; background: transparent; border: 1px solid #555; color: #aaa; padding: 10px 20px; border-radius: 20px;">Back</button>
+    </div>
+
+    <!-- GAME SCREEN -->
+    <div id="game-screen" class="screen">
+        <div class="top-bar">
+            <div class="round-indicator">Round <span id="round-num">1</span>/<span id="total-rounds">5</span></div>
+            <div class="streak-badge" id="streak-badge">🔥 STREAK x<span id="streak-count">0</span></div>
+        </div>
+
+        <div class="character-stage">
+            <div class="character-avatar float" id="char-avatar">❓</div>
+            <div class="dialogue-bubble" id="char-dialogue">Loading...</div>
+        </div>
+
+        <div style="width: 100%; padding: 0 10px;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 5px;">
+                <span>RIZZ METER</span>
+                <span id="meter-percent">0%</span>
+            </div>
+            <div class="meter-container">
+                <div class="meter-text" id="meter-text">0%</div>
+                <div class="meter-fill" id="meter-fill"></div>
+            </div>
+        </div>
+
+        <div class="options-container" id="options-container">
+            <!-- Buttons generated by JS -->
+        </div>
+    </div>
+
+    <!-- END SCREEN -->
+    <div id="end-screen" class="screen">
+        <div class="end-title" id="end-title">RIZZ MASTER 🐐</div>
+        <div class="end-score" id="end-score">100%</div>
+        <div class="end-msg" id="end-msg">You absolutely cooked!</div>
+        <button class="btn-start" onclick="showScreen('char-select-screen')">NEXT CHARACTER</button>
+        <button onclick="restartGame()" style="margin-top: 15px; background: transparent; border: 1px solid white; color: white; padding: 10px 30px; border-radius: 20px;">TRY AGAIN</button>
+    </div>
+
+    <!-- GHOST OVERLAY -->
+    <div id="ghost-overlay">
+        <div class="ghost-emoji">💀👻</div>
+        <h2>GHOSTED!</h2>
+        <p>You lost too much rizz.</p>
+        <div class="timer" id="ghost-timer">30</div>
+        <p>Wait for cooldown...</p>
+    </div>
+
+    <script>
+        // --- DATA ---
+        const characters = [
+            {
+                id: 'tralalero', name: 'Tralalero Tralala', emoji: '🎵', diff: 'easy', rounds: 4,
+                vibe: 'Nonsense musical meme',
+                dialogues: [
+                    { q: "What's up?", opts: [
+                        { t: "Just tryna match your tralala energy 🎶", type: 'high' },
+                        { t: "The ceiling, obviously.", type: 'mid' },
+                        { t: "Nothing, stop singing.", type: 'anti' }
+                    ]},
+                    { q: "Do you like my song?", opts: [
+                        { t: "It's hitting different, pure fire 🔥", type: 'high' },
+                        { t: "It's okay I guess.", type: 'mid' },
+                        { t: "Make it stop.", type: 'anti' }
+                    ]},
+                    { q: "La la la?", opts: [
+                        { t: "Liri larila back at you! 🎤", type: 'high' },
+                        { t: "Sure, why not.", type: 'mid' },
+                        { t: "I don't speak gibberish.", type: 'anti' }
+                    ]},
+                    { q: "Rizz me then!", opts: [
+                        { t: "Your voice is the only rhythm I need ❤️", type: 'high' },
+                        { t: "Okay, you're cool.", type: 'mid' },
+                        { t: "No thanks.", type: 'anti' }
+                    ]}
+                ]
+            },
+            {
+                id: 'tungtung', name: 'Tung Tung Tung Sahur', emoji: '🥁', diff: 'medium', rounds: 5,
+                vibe: 'Sleep-deprived chaotic energy',
+                dialogues: [
+                    { q: "Tung tung... you rizzing me?", opts: [
+                        { t: "Only when the beat drops like you 🥁🔥", type: 'high' },
+                        { t: "Bro really said sahur at 3pm 💀", type: 'mid' },
+                        { t: "I brought you a croissant.", type: 'anti' }
+                    ]},
+                    { q: "You always this smooth?", opts: [
+                        { t: "Only when the drum hits and you're looking.", type: 'high' },
+                        { t: "Nah, I practice in the mirror.", type: 'mid' },
+                        { t: "Smooth? I'm literally vibrating.", type: 'anti' }
+                    ]},
+                    { q: "Wake up!", opts: [
+                        { t: "I'm awake for you only 😮‍💨", type: 'high' },
+                        { t: "5 more minutes...", type: 'mid' },
+                        { t: "Go away.", type: 'anti' }
+                    ]},
+                    { q: "Sahur time!", opts: [
+                        { t: "Let's feast on love instead 🍽️", type: 'high' },
+                        { t: "I'm hungry though.", type: 'mid' },
+                        { t: "It's noon.", type: 'anti' }
+                    ]},
+                    { q: "Final round, impress me.", opts: [
+                        { t: "You're the rhythm to my heart, no cap.", type: 'high' },
+                        { t: "Good game.", type: 'mid' },
+                        { t: "I'm tired.", type: 'anti' }
+                    ]}
+                ]
+            },
+            {
+                id: 'bombardiro', name: 'Bombardiro Crocodilo', emoji: '🐊', diff: 'hard', rounds: 6,
+                vibe: 'Aggressive but silly',
+                dialogues: [
+                    { q: "RAWRR! You scared?", opts: [
+                        { t: "Scared? Nah, I'm just captivated by your jaws 😍", type: 'high' },
+                        { t: "A little bit.", type: 'mid' },
+                        { t: "You're a lizard.", type: 'anti' }
+                    ]},
+                    { q: "I bite!", opts: [
+                        { t: "Bite me with that love then 🦷❤️", type: 'high' },
+                        { t: "Please don't.", type: 'mid' },
+                        { t: "I'll call animal control.", type: 'anti' }
+                    ]},
+                    { q: "Swamp life is hard.", opts: [
+                        { t: "Let me be your prince in this swamp 👑", type: 'high' },
+                        { t: "Sounds wet.", type: 'mid' },
+                        { t: "Move to a zoo.", type: 'anti' }
+                    ]},
+                    { q: "Grrr...", opts: [
+                        { t: "That purr sounds lovely 🐊✨", type: 'high' },
+                        { t: "Stop growling.", type: 'mid' },
+                        { t: "Annoying.", type: 'anti' }
+                    ]},
+                    { q: "Who runs the swamp?", opts: [
+                        { t: "You do, but I run your heart 💓", type: 'high' },
+                        { t: "You do.", type: 'mid' },
+                        { t: "I do.", type: 'anti' }
+                    ]},
+                    { q: "Final snap!", opts: [
+                        { t: "Snap into that rizz level 100!", type: 'high' },
+                        { t: "Okay bye.", type: 'mid' },
+                        { t: "Chomp.", type: 'anti' }
+                    ]}
+                ]
+            },
+            {
+                id: 'ballerina', name: 'Ballerina Cappuccina', emoji: '☕', diff: 'medium', rounds: 5,
+                vibe: 'Elegant + coffee brainrot',
+                dialogues: [
+                    { q: "Espresso yourself.", opts: [
+                        { t: "My love for you is strong black coffee ☕❤️", type: 'high' },
+                        { t: "I like latte.", type: 'mid' },
+                        { t: "I hate caffeine.", type: 'anti' }
+                    ]},
+                    { q: "Spin spin spin...", opts: [
+                        { t: "You spin me right round baby 🩰", type: 'high' },
+                        { t: "Don't get dizzy.", type: 'mid' },
+                        { t: "Stop spinning.", type: 'anti' }
+                    ]},
+                    { q: "Foamy fresh.", opts: [
+                        { t: "Smooth like your moves ✨", type: 'high' },
+                        { t: "Sticky.", type: 'mid' },
+                        { t: "Messy.", type: 'anti' }
+                    ]},
+                    { q: "Cappuccino time?", opts: [
+                        { t: "Date at the cafe? I'm paying 💸", type: 'high' },
+                        { t: "Sure, coffee is nice.", type: 'mid' },
+                        { t: "Tea is better.", type: 'anti' }
+                    ]},
+                    { q: "One last dance?", opts: [
+                        { t: "Always, my graceful queen 👸", type: 'high' },
+                        { t: "Okay, quick one.", type: 'mid' },
+                        { t: "I have two left feet.", type: 'anti' }
+                    ]}
+                ]
+            },
+            {
+                id: 'brrbrr', name: 'Brr Brr Patapim', emoji: '❄️', diff: 'easy', rounds: 4,
+                vibe: 'Fast-paced, glitchy',
+                dialogues: [
+                    { q: "Brr brr!", opts: [
+                        { t: "Patapim! You're cold but hot 🔥❄️", type: 'high' },
+                        { t: "It's chilly.", type: 'mid' },
+                        { t: "Turn on the heater.", type: 'anti' }
+                    ]},
+                    { q: "Fast fast!", opts: [
+                        { t: "Can't catch me, but I'll catch you 😉", type: 'high' },
+                        { t: "Slow down bro.", type: 'mid' },
+                        { t: "Too fast.", type: 'anti' }
+                    ]},
+                    { q: "Glitch mode?", opts: [
+                        { t: "You're perfectly imperfect 💖", type: 'high' },
+                        { t: "You're lagging.", type: 'mid' },
+                        { t: "Fix your connection.", type: 'anti' }
+                    ]},
+                    { q: "End line!", opts: [
+                        { t: "Speeding straight into my heart 🏎️💨", type: 'high' },
+                        { t: "Nice speed.", type: 'mid' },
+                        { t: "Crash.", type: 'anti' }
+                    ]}
+                ]
+            },
+            {
+                id: 'lirili', name: 'Lirilì Larilà', emoji: '🎶', diff: 'easy', rounds: 4,
+                vibe: 'Dreamy, sing-song',
+                dialogues: [
+                    { q: "Dream with me...", opts: [
+                        { t: "In my dreams, it's only you ☁️✨", type: 'high' },
+                        { t: "I was sleeping anyway.", type: 'mid' },
+                        { t: "I need coffee.", type: 'anti' }
+                    ]},
+                    { q: "Soft soft...", opts: [
+                        { t: "Soft like your heart 🧸", type: 'high' },
+                        { t: "Yeah, quiet.", type: 'mid' },
+                        { t: "Speak up.", type: 'anti' }
+                    ]},
+                    { q: "La la la?", opts: [
+                        { t: "Harmonizing with your soul 🎵", type: 'high' },
+                        { t: "Nice tune.", type: 'mid' },
+                        { t: "Off key.", type: 'anti' }
+                    ]},
+                    { q: "Whisper...", opts: [
+                        { t: "I love you, loud and clear ❤️", type: 'high' },
+                        { t: "What?", type: 'mid' },
+                        { t: "I can't hear you.", type: 'anti' }
+                    ]}
+                ]
+            },
+            {
+                id: 'trippi', name: 'Trippi Troppi', emoji: '🍄', diff: 'medium', rounds: 5,
+                vibe: 'Bouncy, repetitive',
+                dialogues: [
+                    { q: "Trippi troppi!", opts: [
+                        { t: "Troppi trippi! We match perfectly 🔄", type: 'high' },
+                        { t: "Say what?", type: 'mid' },
+                        { t: "Stop repeating.", type: 'anti' }
+                    ]},
+                    { q: "Bounce bounce!", opts: [
+                        { t: "Bouncing into your DMs 📩", type: 'high' },
+                        { t: "High energy.", type: 'mid' },
+                        { t: "Sit down.", type: 'anti' }
+                    ]},
+                    { q: "Round and round?", opts: [
+                        { t: "Like my feelings for you 🔄❤️", type: 'high' },
+                        { t: "Dizzy.", type: 'mid' },
+                        { t: "Circle of life.", type: 'anti' }
+                    ]},
+                    { q: "Repeat after me: Rizz.", opts: [
+                        { t: "Rizz? I thought we had chemistry 🧪", type: 'high' },
+                        { t: "Rizz.", type: 'mid' },
+                        { t: "No.", type: 'anti' }
+                    ]},
+                    { q: "Final trip!", opts: [
+                        { t: "Taking a trip to love lane with you 🛣️", type: 'high' },
+                        { t: "Fun ride.", type: 'mid' },
+                        { t: "Motion sickness.", type: 'anti' }
+                    ]}
+                ]
+            },
+            {
+                id: 'bombombini', name: 'Bombombini Gusini', emoji: '💣', diff: 'hard', rounds: 6,
+                vibe: 'Goose/chaos energy',
+                dialogues: [
+                    { q: "Honk! You ready?", opts: [
+                        { t: "Ready to steal your heart like a goose 🦢💘", type: 'high' },
+                        { t: "Honk back.", type: 'mid' },
+                        { t: "Shoo.", type: 'anti' }
+                    ]},
+                    { q: "Chaos mode!", opts: [
+                        { t: "Chaos is just passion in disguise 🌪️", type: 'high' },
+                        { t: "It's messy.", type: 'mid' },
+                        { t: "Clean this up.", type: 'anti' }
+                    ]},
+                    { q: "Bombombini!", opts: [
+                        { t: "Gusini! You explode my world 💥", type: 'high' },
+                        { t: "What does that mean?", type: 'mid' },
+                        { t: "Nonsense.", type: 'anti' }
+                    ]},
+                    { q: "Fly away?", opts: [
+                        { t: "Take me with you to the skies ✈️", type: 'high' },
+                        { t: "Bye.", type: 'mid' },
+                        { t: "Stay on ground.", type: 'anti' }
+                    ]},
+                    { q: "Peck peck!", opts: [
+                        { t: "Pecking order: You're #1 👑", type: 'high' },
+                        { t: "Ouch.", type: 'mid' },
+                        { t: "Aggressive.", type: 'anti' }
+                    ]},
+                    { q: "Final honk!", opts: [
+                        { t: "Honk if you love rizz! (I do) 📢", type: 'high' },
+                        { t: "Honk.", type: 'mid' },
+                        { t: "Silence.", type: 'anti' }
+                    ]}
+                ]
+            },
+            {
+                id: 'vaca', name: 'La Vaca Saturno', emoji: '🐮', diff: 'hard', rounds: 6,
+                vibe: 'Cosmic cow absurdity',
+                dialogues: [
+                    { q: "Moo from Saturn?", opts: [
+                        { t: "Your love is out of this world 🪐🐮", type: 'high' },
+                        { t: "Space cows are weird.", type: 'mid' },
+                        { t: "Go back to earth.", type: 'anti' }
+                    ]},
+                    { q: "Rings of beauty.", opts: [
+                        { t: "Not as beautiful as your horns ✨", type: 'high' },
+                        { t: "Nice rings.", type: 'mid' },
+                        { t: "Gas giant.", type: 'anti' }
+                    ]},
+                    { q: "Gravity low here.", opts: [
+                        { t: "Floating towards your heart 🎈", type: 'high' },
+                        { t: "I feel light.", type: 'mid' },
+                        { t: "I'm falling.", type: 'anti' }
+                    ]},
+                    { q: "Milky way?", opts: [
+                        { t: "Sweeter than any galaxy 🌌", type: 'high' },
+                        { t: "Space joke.", type: 'mid' },
+                        { t: "Lactose intolerant.", type: 'anti' }
+                    ]},
+                    { q: "Orbit me.", opts: [
+                        { t: "I'm your moon, forever orbiting 🌑", type: 'high' },
+                        { t: "Okay, spinning.", type: 'mid' },
+                        { t: "Dizzy.", type: 'anti' }
+                    ]},
+                    { q: "Cosmic moo.", opts: [
+                        { t: "Resonating through the universe 🔊❤️", type: 'high' },
+                        { t: "Loud.", type: 'mid' },
+                        { t: "Quiet please.", type: 'anti' }
+                    ]}
+                ]
+            },
+            {
+                id: 'frigo', name: 'Frigo Camelo', emoji: '🐫', diff: 'medium', rounds: 5,
+                vibe: 'Chill, fridge/camel meme',
+                dialogues: [
+                    { q: "Cold but dry?", opts: [
+                        { t: "Cool like ice, warm like desert sun 🏜️❄️", type: 'high' },
+                        { t: "Confusing weather.", type: 'mid' },
+                        { t: "Pick a temperature.", type: 'anti' }
+                    ]},
+                    { q: "Hump day?", opts: [
+                        { t: "Every day is good when you're here 🐫", type: 'high' },
+                        { t: "It's Wednesday.", type: 'mid' },
+                        { t: "I hate Wednesdays.", type: 'anti' }
+                    ]},
+                    { q: "Fridge light on?", opts: [
+                        { t: "You light up my life 💡", type: 'high' },
+                        { t: "Save energy.", type: 'mid' },
+                        { t: "Bulb is dead.", type: 'anti' }
+                    ]},
+                    { q: "Thirsty?", opts: [
+                        { t: "Thirsty for your attention 💧", type: 'high' },
+                        { t: "Got water?", type: 'mid' },
+                        { t: "Dehydrated.", type: 'anti' }
+                    ]},
+                    { q: "Chill vibes.", opts: [
+                        { t: "Chilling with you is my hobby 🧊", type: 'high' },
+                        { t: "Relaxing.", type: 'mid' },
+                        { t: "Boring.", type: 'anti' }
+                    ]}
+                ]
+            }
+        ];
+
+        // --- STATE ---
+        let currentChar = null;
+        let currentRound = 0;
+        let rizzLevel = 0;
+        let streak = 0;
+        let failsInSession = 0;
+        let isCooldown = false;
+
+        // --- AUDIO CONTEXT (Simulated Haptics/Visuals) ---
+        function triggerHaptic(type) {
+            // Visual shake for "wrong"
+            if (type === 'wrong') {
+                document.body.classList.add('shake');
+                setTimeout(() => document.body.classList.remove('shake'), 400);
+            } else if (type === 'success') {
+                // Subtle pulse
+                document.getElementById('game-screen').style.transform = "scale(1.02)";
+                setTimeout(() => document.getElementById('game-screen').style.transform = "scale(1)", 100);
+            }
+        }
+
+        // --- NAVIGATION ---
+        function showScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            
+            if (id === 'char-select-screen') renderCharacters();
+        }
+
+        function renderCharacters() {
+            const grid = document.getElementById('char-grid');
+            grid.innerHTML = '';
+            characters.forEach(char => {
+                const card = document.createElement('div');
+                card.className = `char-card ${char.diff}`;
+                card.onclick = () => startGame(char);
+                card.innerHTML = `
+                    <span class="char-emoji">${char.emoji}</span>
+                    <div class="char-name">${char.name}</div>
+                    <div class="char-diff diff-${char.diff}">${char.diff.toUpperCase()}</div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // --- GAME LOGIC ---
+        function startGame(char) {
+            currentChar = char;
+            currentRound = 0;
+            rizzLevel = 0;
+            streak = 0;
+            failsInSession = 0;
+            
+            updateMeter(0);
+            updateStreak();
+            showScreen('game-screen');
+            loadRound();
+        }
+
+        function restartGame() {
+            startGame(currentChar);
+        }
+
+        function loadRound() {
+            if (currentRound >= currentChar.dialogues.length) {
+                endGame(true);
+                return;
+            }
+
+            const data = currentChar.dialogues[currentRound];
+            
+            // Update UI
+            document.getElementById('char-avatar').innerText = currentChar.emoji;
+            document.getElementById('char-dialogue').innerText = data.q;
+            document.getElementById('round-num').innerText = currentRound + 1;
+            document.getElementById('total-rounds').innerText = currentChar.rounds;
+
+            // Shuffle options
+            const opts = [...data.opts].sort(() => Math.random() - 0.5);
+            
+            const container = document.getElementById('options-container');
+            container.innerHTML = '';
+
+            opts.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.innerText = opt.t;
+                btn.onclick = () => handleChoice(btn, opt.type);
+                container.appendChild(btn);
+            });
+
+            // Animation reset
+            const bubble = document.getElementById('char-dialogue');
+            bubble.style.animation = 'none';
+            bubble.offsetHeight; /* trigger reflow */
+            bubble.style.animation = 'popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+        }
+
+        function handleChoice(btn, type) {
+            // Disable all buttons
+            const allBtns = document.querySelectorAll('.option-btn');
+            allBtns.forEach(b => b.disabled = true);
+
+            let change = 0;
+            let msg = "";
+
+            if (type === 'high') {
+                btn.classList.add('correct');
+                change = currentChar.diff === 'easy' ? 25 : (currentChar.diff === 'medium' ? 22 : 20);
+                streak++;
+                if (streak >= 2) change += 5; // Streak bonus
+                triggerHaptic('success');
+            } else if (type === 'mid') {
+                btn.classList.add('mid');
+                change = currentChar.diff === 'easy' ? 10 : (currentChar.diff === 'medium' ? 8 : 5);
+                streak = 0;
+                triggerHaptic('success'); // Mild success
+            } else {
+                btn.classList.add('wrong');
+                change = currentChar.diff === 'easy' ? -10 : (currentChar.diff === 'medium' ? -12 : -15);
+                streak = 0;
+                failsInSession++;
+                triggerHaptic('wrong');
+            }
+
+            updateMeter(change);
+            updateStreak();
+
+            setTimeout(() => {
+                if (rizzLevel <= 0 && failsInSession >= 3) {
+                    triggerGhostMode();
+                } else if (rizzLevel <= 0) {
+                    // Reset to small buffer so game doesn't end immediately on first fail
+                    rizzLevel = 5; 
+                    updateMeter(0);
+                    currentRound = Math.max(0, currentRound - 1); // Retry round
+                    loadRound();
+                } else {
+                    currentRound++;
+                    loadRound();
+                }
+            }, 1000);
+        }
+
+        function updateMeter(change) {
+            if (change) {
+                rizzLevel += change;
+                if (rizzLevel > 100) rizzLevel = 100;
+                if (rizzLevel < 0) rizzLevel = 0;
+            }
+
+            const fill = document.getElementById('meter-fill');
+            const text = document.getElementById('meter-text');
+            const percent = document.getElementById('meter-percent');
+
+            fill.style.width = `${rizzLevel}%`;
+            text.innerText = `${Math.round(rizzLevel)}%`;
+            percent.innerText = `${Math.round(rizzLevel)}%`;
+
+            // Color shift based on level
+            if (rizzLevel < 30) fill.style.background = '#ff4444';
+            else if (rizzLevel < 70) fill.style.background = '#ffcc00';
+            else fill.style.background = 'linear-gradient(90deg, #ffcc00, #00ff9d)';
+        }
+
+        function updateStreak() {
+            const badge = document.getElementById('streak-badge');
+            const count = document.getElementById('streak-count');
+            if (streak >= 2) {
+                badge.style.display = 'inline-block';
+                count.innerText = streak;
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+
+        function triggerGhostMode() {
+            isCooldown = true;
+            const overlay = document.getElementById('ghost-overlay');
+            const timerEl = document.getElementById('ghost-timer');
+            overlay.style.display = 'flex';
+            
+            let timeLeft = 5; // Shortened for demo, normally 30s
+            timerEl.innerText = timeLeft;
+            
+            const interval = setInterval(() => {
+                timeLeft--;
+                timerEl.innerText = timeLeft;
+                if (timeLeft <= 0) {
+                    clearInterval(interval);
+                    overlay.style.display = 'none';
+                    isCooldown = false;
+                    showScreen('char-select-screen');
+                }
+            }, 1000);
+        }
+
+        function endGame(win) {
+            const screen = document.getElementById('end-screen');
+            const title = document.getElementById('end-title');
+            const score = document.getElementById('end-score');
+            const msg = document.getElementById('end-msg');
+
+            screen.classList.add('active');
+            
+            if (win || rizzLevel >= 100) {
+                title.innerText = "RIZZ MASTER 🐐";
+                title.style.color = "#00ff9d";
+                score.innerText = "100%";
+                msg.innerText = `You absolutely cooked ${currentChar.name}!`;
+                createConfetti();
+            } else {
+                title.innerText = "L RIZZ 😭";
+                title.style.color = "#ff4444";
+                score.innerText = `${Math.round(rizzLevel)}%`;
+                msg.innerText = "They weren't feeling it...";
+            }
+        }
+
+        function createConfetti() {
+            for (let i = 0; i < 50; i++) {
+                const conf = document.createElement('div');
+                conf.className = 'confetti';
+                conf.style.left = Math.random() * 100 + 'vw';
+                conf.style.background = `hsl(${Math.random() * 360}, 100%, 50%)`;
+                conf.style.animationDuration = (Math.random() * 2 + 2) + 's';
+                document.body.appendChild(conf);
+                setTimeout(() => conf.remove(), 4000);
+            }
+        }
+
+    </script>
+</body>
+</html>
